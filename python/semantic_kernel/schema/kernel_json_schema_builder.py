@@ -189,7 +189,11 @@ class KernelJsonSchemaBuilder:
                 schema["additionalProperties"] = False
             return schema
         if origin is tuple:
-            items = [cls.build(arg, structured_output=structured_output) for arg in args]
+            items = (
+                cls.build(args[0], structured_output=structured_output)
+                if len(args) == 2 and args[1] is Ellipsis
+                else [cls.build(arg, structured_output=structured_output) for arg in args]
+            )
             schema = {"type": "array", "items": items}
             if description:
                 schema["description"] = description

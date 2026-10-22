@@ -218,6 +218,42 @@ def test_build_tuple():
     }
 
 
+@pytest.mark.parametrize("structured_output", [False, True])
+def test_build_variadic_tuple(structured_output: bool) -> None:
+    schema = KernelJsonSchemaBuilder.build(tuple[int, ...], "measurements", structured_output)
+    expected = {"type": "array", "items": {"type": "integer"}, "description": "measurements"}
+    if structured_output:
+        expected["additionalProperties"] = False
+    assert schema == expected
+
+
+@pytest.mark.parametrize(
+    ("annotation", "expected"),
+    [
+        (tuple[str, ...], {"type": "array", "items": {"type": "string"}}),
+        (list[tuple[int, ...]], {"type": "array", "items": {"type": "array", "items": {"type": "integer"}}}),
+        (
+            dict[str, tuple[int, ...]],
+            {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "integer"}}},
+        ),
+        (Optional[tuple[int, ...]], {"type": ["array", "null"], "items": {"type": "integer"}}),
+    ],
+)
+def test_build_nested_variadic_tuple(annotation: Any, expected: dict[str, Any]) -> None:
+    assert KernelJsonSchemaBuilder.build(annotation) == expected
+
+
+def test_build_other_tuple_forms_unchanged() -> None:
+    assert KernelJsonSchemaBuilder.build(tuple) == {"type": "array"}
+    assert KernelJsonSchemaBuilder.build(tuple[()]) == {"type": "array", "items": []}
+    assert KernelJsonSchemaBuilder.build(tuple[int, str], "pair", structured_output=True) == {
+        "type": "array",
+        "items": [{"type": "integer"}, {"type": "string"}],
+        "description": "pair",
+        "additionalProperties": False,
+    }
+
+
 def test_build_union():
     schema = KernelJsonSchemaBuilder.build(Union[int, str])
     assert schema == {"anyOf": [{"type": "integer"}, {"type": "string"}]}

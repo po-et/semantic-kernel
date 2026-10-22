@@ -25,6 +25,18 @@ from semantic_kernel.kernel_pydantic import KernelBaseModel
 kernel_function_module = import_module("semantic_kernel.functions.kernel_function")
 
 
+@pytest.mark.asyncio
+async def test_variadic_tuple_parameter_schema_and_invocation() -> None:
+    @kernel_function
+    def total(values: tuple[int, ...]) -> int:
+        return sum(values)
+
+    function = KernelFunction.from_method(total, plugin_name="numbers")
+    assert function.metadata.parameters[0].schema_data == {"type": "array", "items": {"type": "integer"}}
+    result = await function.invoke(Kernel(), KernelArguments(values=[1, 2, 3]))
+    assert result.value == 6
+
+
 class CustomType(KernelBaseModel):
     id: str
     name: str
